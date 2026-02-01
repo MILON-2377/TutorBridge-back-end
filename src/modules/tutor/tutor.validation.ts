@@ -17,19 +17,26 @@ export const TutorSchema = z.object({
   categoryIds: z.array(z.string().min(1)),
 });
 
-export const AvailabilityRuleSchema = z.object({
-  dayOfWeek: z.enum([
-    "MONDAY",
-    "TUESDAY",
-    "WEDNESDAY",
-    "THURSDAY",
-    "FRIDAY",
-    "SATURDAY",
-    "SUNDAY",
-  ]),
-  startTime: z.string(),
-  endTime: z.string(),
-});
+const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+export const AvailabilityRuleSchema = z
+  .object({
+    dayOfWeek: z.enum([
+      "MONDAY",
+      "TUESDAY",
+      "WEDNESDAY",
+      "THURSDAY",
+      "FRIDAY",
+      "SATURDAY",
+      "SUNDAY",
+    ]),
+    startTime: z.string().regex(timeRegex),
+    endTime: z.string().regex(timeRegex),
+  })
+  .refine((data) => data.startTime < data.endTime, {
+    message: "endTime must be after startTime",
+    path: ["endTime"],
+  });
 
 export type TutorInput = z.infer<typeof TutorSchema>;
 export type AvailabilityRuleInput = z.infer<typeof AvailabilityRuleSchema>;

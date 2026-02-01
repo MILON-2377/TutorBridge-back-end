@@ -185,7 +185,7 @@ model AvailabilitySlot {
   availabilityRule AvailabilityRule @relation(fields: [availabilityRuleId], references: [id], onDelete: Cascade)
   bookings         Booking[]
 
-  @@unique([availabilityRuleId, date, startTime, endTime])
+  @@unique([availabilityRuleId, date, startTime])
 }
 
 enum BookingStatus {

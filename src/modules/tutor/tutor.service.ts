@@ -1,4 +1,4 @@
-import { Tutor, UserRole } from "@prisma/client";
+import { Tutor, UserRole, WeekDay } from "@prisma/client";
 import prisma from "../../lib/prisma.js";
 import ApiError from "../../utils/ApiError.js";
 import { AvailabilityRuleInput, TutorInput } from "./tutor.validation.js";
@@ -130,9 +130,19 @@ export default class TutorService {
   };
 
   // Get Availabilities
-  public static getTutorAvailability = async (tutorId: string) => {
+  public static getTutorAvailability = async (userId: string) => {
+    const tutor = await prisma.tutor.findUnique({
+      where: {
+        userId,
+      },
+    });
+
+    if (!tutor) {
+      throw ApiError.notFound("Tutor not found");
+    }
+
     const availability = await prisma.availabilityRule.findMany({
-      where: { tutorId },
+      where: { tutorId: tutor.id },
       include: {
         availabilitySlots: {
           where: { status: "AVAILABLE" },
@@ -206,6 +216,7 @@ export default class TutorService {
 
     const slots = [];
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     for (let i = 0; i < daysAhead; i++) {
       const date = new Date(today);
@@ -213,7 +224,7 @@ export default class TutorService {
 
       const dayName = date
         .toLocaleDateString("en-US", { weekday: "long" })
-        .toUpperCase();
+        .toUpperCase() as WeekDay;
 
       if (dayName !== rule.dayOfWeek) continue;
 
@@ -240,13 +251,26 @@ export default class TutorService {
     );
   };
 
+
+  // Toggle Availability
   public static toggleAvailabilityRule = async (
-    tutorId: string,
+    userId: string,
     ruleId: string,
     isActive: boolean,
   ) => {
+
+    const tutor = await prisma.tutor.findUnique({
+      where: {
+        userId
+      }
+    });
+
+    if(!tutor){
+      throw ApiError.notFound("Tutor not found")
+    }
+
     const rule = await prisma.availabilityRule.findFirst({
-      where: { id: ruleId, tutorId },
+      where: { id: ruleId, tutorId: tutor.id },
     });
 
     if (!rule) {
@@ -261,6 +285,8 @@ export default class TutorService {
     return ApiResponse.success("Availability rule updated", updatedRule);
   };
 
+
+  // Delete Availability
   public static deleteAvailabilityRule = async (
     tutorId: string,
     ruleId: string,
@@ -279,4 +305,6 @@ export default class TutorService {
 
     return ApiResponse.success("Availability rule deleted successfully", null);
   };
+
+
 }
