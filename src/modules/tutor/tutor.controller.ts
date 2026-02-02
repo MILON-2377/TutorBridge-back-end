@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import asyncHandler from "../../utils/AsyncHandler.js";
-import { AvailabilityRuleSchema, TutorSchema } from "./tutor.validation.js";
+import {
+  AvailabilityRuleSchema,
+  CreateTutorSchema,
+  TutorSchema,
+} from "./tutor.validation.js";
 import TutorService from "./tutor.service.js";
 import ApiError from "../../utils/ApiError.js";
 
@@ -15,7 +19,7 @@ export default class TutorController {
         throw ApiError.badRequest("UserId not found or invalid credentials");
       }
 
-      const validatedTutorData = TutorSchema.parse(rawData);
+      const validatedTutorData = CreateTutorSchema.parse(rawData);
 
       const response = await TutorService.createTutor(
         validatedTutorData,
@@ -55,21 +59,21 @@ export default class TutorController {
   /**
    * Update Tutor Profile
    */
-  public static updateTutor = asyncHandler(
-    async (req: Request, res: Response) => {
-      const tutorId = req.params.id;
+  // public static updateTutor = asyncHandler(
+  //   async (req: Request, res: Response) => {
+  //     const tutorId = req.params.id;
 
-      if (!tutorId) {
-        throw ApiError.badRequest("TutorId is required");
-      }
+  //     if (!tutorId) {
+  //       throw ApiError.badRequest("TutorId is required");
+  //     }
 
-      const response = await TutorService.updateTutor(
-        tutorId as string,
-        req.body,
-      );
-      return res.status(response.statusCode).json(response);
-    },
-  );
+  //     const response = await TutorService.updateTutor(
+  //       tutorId as string,
+  //       req.body,
+  //     );
+  //     return res.status(response.statusCode).json(response);
+  //   },
+  // );
 
   /**
    * Delete Tutor

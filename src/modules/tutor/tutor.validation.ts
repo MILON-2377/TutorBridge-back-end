@@ -13,8 +13,14 @@ export const TutorSchema = z.object({
   languages: z
     .array(z.string().min(1))
     .min(1, "At least one language is required"),
+});
 
-  categoryIds: z.array(z.string().min(1)),
+export const CreateTutorSchema = z.object({
+  role: z.enum(["TUTOR"]),
+  tutorDetails: TutorSchema,
+  category: z.object({
+    id: z.string(),
+  }),
 });
 
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -40,3 +46,4 @@ export const AvailabilityRuleSchema = z
 
 export type TutorInput = z.infer<typeof TutorSchema>;
 export type AvailabilityRuleInput = z.infer<typeof AvailabilityRuleSchema>;
+export type CreateTutorInput = z.infer<typeof CreateTutorSchema>

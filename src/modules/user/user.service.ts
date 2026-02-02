@@ -4,6 +4,20 @@ import ApiError from "../../utils/ApiError.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 
 export default class UserService {
+  public static getUser = async (userId: string) => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+      });
+
+      return ApiResponse.success("User fetched successfully", user);
+    } catch (error) {
+      throw new ApiError(500, `Get Users error: ${error}`);
+    }
+  };
+
   public static setRole = async (userId: string, role: string) => {
     const user = await prisma.user.findUnique({
       where: {
@@ -27,4 +41,5 @@ export default class UserService {
 
     return ApiResponse.success("Selected role updated", updatedUser);
   };
+
 }

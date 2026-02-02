@@ -12,7 +12,7 @@ router.post("/", TutorController.createTutor);
 
 router.post("/", TutorController.createTutor);
 router.get("/:id", TutorController.getTutorById);
-router.patch("/:id", TutorController.updateTutor);
+// router.patch("/:id", TutorController.updateTutor);
 router.delete("/:id", TutorController.deleteTutor);
 
 router.post("/availability", TutorController.createAvailability);

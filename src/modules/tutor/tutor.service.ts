@@ -1,60 +1,65 @@
 import { Tutor, UserRole, WeekDay } from "@prisma/client";
 import prisma from "../../lib/prisma.js";
 import ApiError from "../../utils/ApiError.js";
-import { AvailabilityRuleInput, TutorInput } from "./tutor.validation.js";
+import { AvailabilityRuleInput, CreateTutorInput, TutorInput } from "./tutor.validation.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import paginate, { PaginationParams } from "../helpers/pagination.js";
 
 export default class TutorService {
   // Create Tutor
-  public static createTutor = async (data: TutorInput, userId: string) => {
-    const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-    });
+  public static createTutor = async (data: CreateTutorInput, userId: string) => {
+    return await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+      });
 
-    if (!user) {
-      throw ApiError.forbidden("You must need to be sign-up first");
-    }
+      if (!user) {
+        throw ApiError.forbidden("You must be signed in first");
+      }
 
-    const isTutorExist = await prisma.tutor.findUnique({
-      where: {
-        userId,
-      },
-    });
+      const existingTutor = await tx.tutor.findUnique({
+        where: { userId },
+      });
 
-    let tutor: Tutor;
+      if (existingTutor) {
+        throw ApiError.badRequest("Tutor profile already exists");
+      }
 
-    const { categoryIds, ...tutorData } = data;
-    if (!isTutorExist && user.role === UserRole.TUTOR) {
-      tutor = await prisma.tutor.create({
+      const { category, tutorDetails, role } = data;
+
+      const tutor = await tx.tutor.create({
         data: {
-          ...tutorData,
+          ...tutorDetails,
           userId,
         },
       });
-    } else {
-      throw ApiError.badRequest("Tutor already exist or wrong creadentials");
-    }
 
-    await prisma.tutorCategory.createMany({
-      data: categoryIds.map((categoryId) => ({
-        tutorId: tutor.id,
-        categoryId,
-      })),
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          role: UserRole.TUTOR,
+          onboardingStatus: "IN_PROGRESS",
+        },
+      });
+
+      if (category) {
+        await tx.tutorCategory.createMany({
+          data: {
+            tutorId: tutor.id,
+            categoryId: category.id
+          }
+        });
+      }
+
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          onboardingStatus: "COMPLETED",
+        },
+      });
+
+      return ApiResponse.success("Tutor created successfully", tutor);
     });
-
-    await prisma.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        onboardingStatus: "COMPLETED",
-      },
-    });
-
-    return ApiResponse.success("Tutor created successfully", tutor);
   };
 
   public static getTutors = async (params: PaginationParams) => {
@@ -94,28 +99,28 @@ export default class TutorService {
     return ApiResponse.success("Tutor fetched successfully", tutor);
   };
 
-  public static updateTutor = async (
-    tutorId: string,
-    data: Partial<TutorInput>,
-  ) => {
-    const tutor = await prisma.tutor.findUnique({ where: { id: tutorId } });
-    if (!tutor) throw ApiError.notFound("Tutor not found");
+  // public static updateTutor = async (
+  //   tutorId: string,
+  //   data: Partial<TutorInput>,
+  // ) => {
+  //   const tutor = await prisma.tutor.findUnique({ where: { id: tutorId } });
+  //   if (!tutor) throw ApiError.notFound("Tutor not found");
 
-    const updatedTutor = await prisma.tutor.update({
-      where: { id: tutorId },
-      data,
-    });
+  //   const updatedTutor = await prisma.tutor.update({
+  //     where: { id: tutorId },
+  //     data,
+  //   });
 
-    if (data.categoryIds) {
-      await prisma.tutorCategory.deleteMany({ where: { tutorId } });
+  //   if (data.categoryIds) {
+  //     await prisma.tutorCategory.deleteMany({ where: { tutorId } });
 
-      await prisma.tutorCategory.createMany({
-        data: data.categoryIds.map((categoryId) => ({ tutorId, categoryId })),
-      });
-    }
+  //     await prisma.tutorCategory.createMany({
+  //       data: data.categoryIds.map((categoryId) => ({ tutorId, categoryId })),
+  //     });
+  //   }
 
-    return ApiResponse.success("Tutor updated successfully", updatedTutor);
-  };
+  //   return ApiResponse.success("Tutor updated successfully", updatedTutor);
+  // };
 
   // Delete tutor
   public static deleteTutor = async (tutorId: string) => {
@@ -251,22 +256,20 @@ export default class TutorService {
     );
   };
 
-
   // Toggle Availability
   public static toggleAvailabilityRule = async (
     userId: string,
     ruleId: string,
     isActive: boolean,
   ) => {
-
     const tutor = await prisma.tutor.findUnique({
       where: {
-        userId
-      }
+        userId,
+      },
     });
 
-    if(!tutor){
-      throw ApiError.notFound("Tutor not found")
+    if (!tutor) {
+      throw ApiError.notFound("Tutor not found");
     }
 
     const rule = await prisma.availabilityRule.findFirst({
@@ -284,7 +287,6 @@ export default class TutorService {
 
     return ApiResponse.success("Availability rule updated", updatedRule);
   };
-
 
   // Delete Availability
   public static deleteAvailabilityRule = async (
@@ -305,6 +307,4 @@ export default class TutorService {
 
     return ApiResponse.success("Availability rule deleted successfully", null);
   };
-
-
 }
