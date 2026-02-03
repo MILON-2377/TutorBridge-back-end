@@ -158,15 +158,15 @@ export default class TutorController {
    */
   public static deleteAvailabilityRule = asyncHandler(
     async (req: Request, res: Response) => {
-      const tutorId = req?.user?.id;
+      const userId = req?.user?.id;
       const ruleId = req.params.id;
 
-      if (!tutorId || !ruleId) {
+      if (!userId || !ruleId) {
         throw ApiError.badRequest("TutorId or RuleId missing");
       }
 
       const response = await TutorService.deleteAvailabilityRule(
-        tutorId,
+        userId,
         ruleId as string,
       );
 

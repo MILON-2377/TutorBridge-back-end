@@ -1,13 +1,20 @@
 import { Tutor, UserRole, WeekDay } from "@prisma/client";
 import prisma from "../../lib/prisma.js";
 import ApiError from "../../utils/ApiError.js";
-import { AvailabilityRuleInput, CreateTutorInput, TutorInput } from "./tutor.validation.js";
+import {
+  AvailabilityRuleInput,
+  CreateTutorInput,
+  TutorInput,
+} from "./tutor.validation.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import paginate, { PaginationParams } from "../helpers/pagination.js";
 
 export default class TutorService {
   // Create Tutor
-  public static createTutor = async (data: CreateTutorInput, userId: string) => {
+  public static createTutor = async (
+    data: CreateTutorInput,
+    userId: string,
+  ) => {
     return await prisma.$transaction(async (tx) => {
       const user = await tx.user.findUnique({
         where: { id: userId },
@@ -46,8 +53,8 @@ export default class TutorService {
         await tx.tutorCategory.createMany({
           data: {
             tutorId: tutor.id,
-            categoryId: category.id
-          }
+            categoryId: category.id,
+          },
         });
       }
 
@@ -62,6 +69,7 @@ export default class TutorService {
     });
   };
 
+  // Get Tutors
   public static getTutors = async (params: PaginationParams) => {
     const {
       page = 1,
@@ -88,6 +96,7 @@ export default class TutorService {
     return ApiResponse.success("Tutors fetched successfully", result);
   };
 
+  // Get Tutor ByID
   public static getTutorById = async (tutorId: string) => {
     const tutor = await prisma.tutor.findUnique({
       where: { id: tutorId },
@@ -290,12 +299,29 @@ export default class TutorService {
 
   // Delete Availability
   public static deleteAvailabilityRule = async (
-    tutorId: string,
+    userId: string,
     ruleId: string,
   ) => {
-    const rule = await prisma.availabilityRule.findFirst({
-      where: { id: ruleId, tutorId },
+    const tutor = await prisma.tutor.findUnique({
+      where: {
+        userId,
+      },
     });
+
+    const tutorId = tutor?.id;
+
+    if (!tutorId) {
+      throw ApiError.notFound("Tutor not found");
+    }
+
+    const rule = await prisma.availabilityRule
+      .findFirst({
+        where: { id: ruleId, tutorId },
+      })
+      .catch((err) => {
+        console.error("Db query failed", err);
+        throw ApiError.error("Database unavailable");
+      });
 
     if (!rule) {
       throw ApiError.notFound("Availability rule not found");

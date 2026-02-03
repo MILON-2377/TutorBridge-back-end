@@ -7,6 +7,7 @@ const router = Router();
 router.get("/", authentication(), TutorController.getTutors);
 
 router.use(authentication());
+router.get("/availability", TutorController.getTutorAvailability);
 
 router.post("/", TutorController.createTutor);
 
@@ -21,16 +22,12 @@ router.post(
 
   TutorController.generateAvailabilitySlots,
 );
-router.get("/availability", TutorController.getTutorAvailability);
 router.patch(
   "/availability/:id",
 
   TutorController.toggleAvailabilityRule,
 );
-router.delete(
-  "/availability/:id",
 
-  TutorController.deleteAvailabilityRule,
-);
+router.delete("/availability/:id", TutorController.deleteAvailabilityRule);
 
 export default router;
