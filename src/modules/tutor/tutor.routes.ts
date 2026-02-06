@@ -4,30 +4,25 @@ import authentication from "../../middleware/authentication.js";
 
 const router = Router();
 
-router.get("/", authentication(), TutorController.getTutors);
-
+/* =========================
+   Protected Routes
+========================= */
 router.use(authentication());
+
+/* ===== Availability (PUT THESE FIRST) ===== */
 router.get("/availability", TutorController.getTutorAvailability);
-
-router.post("/", TutorController.createTutor);
-
-router.post("/", TutorController.createTutor);
-router.get("/:id", TutorController.getTutorById);
-// router.patch("/:id", TutorController.updateTutor);
-router.delete("/:id", TutorController.deleteTutor);
-
+router.get("/availability/:id", TutorController.getAvailabilityById);
+router.get("/availability/slots/:id", TutorController.getAvailabilitySlots);
 router.post("/availability", TutorController.createAvailability);
-router.post(
-  "/availability/:id/generate",
-
-  TutorController.generateAvailabilitySlots,
-);
-router.patch(
-  "/availability/:id",
-
-  TutorController.toggleAvailabilityRule,
-);
+router.put("/availability/:id", TutorController.updateAvailabilityRule);
+router.patch("/availability/:id", TutorController.toggleAvailabilityRule);
 
 router.delete("/availability/:id", TutorController.deleteAvailabilityRule);
+
+/* ===== Tutor ===== */
+router.get("/", TutorController.getTutors);
+router.post("/", TutorController.createTutor);
+router.get("/:id", TutorController.getTutorById);
+router.delete("/:id", TutorController.deleteTutor);
 
 export default router;

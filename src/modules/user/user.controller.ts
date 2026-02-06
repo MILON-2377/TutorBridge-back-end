@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import asyncHandler from "../../utils/AsyncHandler.js";
-import { RoleSchema } from "./user.validation.js";
+import { ProfileSchema, RoleSchema } from "./user.validation.js";
 import UserService from "./user.service.js";
 import ApiError from "../../utils/ApiError.js";
 import auth from "../../lib/auth.js";
@@ -51,5 +51,30 @@ export default class UserController {
     return res.status(response.statusCode).json(response);
   });
 
- 
+  public static updateProfile = asyncHandler(
+    async (req: Request, res: Response) => {
+      const userId = req?.user?.id;
+
+      if (!userId) {
+        throw ApiError.unauthorized("Unauthorized: invalid credentials");
+      }
+
+      const rawData = req.body;
+
+
+      const cleanedData = {
+        ...rawData,
+        image: rawData.image?.trim() === "" ? undefined : rawData.image,
+      };
+      const validatedProfile = ProfileSchema.parse(cleanedData);
+
+
+      const response = await UserService.updateProfile(
+        userId,
+        validatedProfile,
+      );
+
+      return res.status(response.statusCode).json(response);
+    },
+  );
 }

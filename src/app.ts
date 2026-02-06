@@ -27,9 +27,21 @@ app.use("/api/v1/auth", authRoute);
 import userRoute from "./modules/user/user.routes.js";
 app.use("/api/v1/users", userRoute);
 
+// Booking Route
+import bookingRoute from "./modules/booking/booking.routes.js";
+app.use("/api/v1/bookings", bookingRoute);
+
+// Student Route
+import studentRoute from "./modules/student/student.routes.js";
+app.use("/api/v1/students", studentRoute);
+
 // Category Route
 import categoryRoute from "./modules/category/category.routes.js";
 app.use("/api/v1/categories", categoryRoute);
+
+// Review Route
+import reviewRoute from "./modules/review/review.routes.js";
+app.use("/api/v1/reviews", reviewRoute);
 
 // Tutor Route
 import tutorRoute from "./modules/tutor/tutor.routes.js";

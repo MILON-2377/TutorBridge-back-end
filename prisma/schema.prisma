@@ -144,8 +144,8 @@ model TutorCategory {
 model AvailabilityRule {
   id        String  @id @default(uuid())
   dayOfWeek WeekDay
-  startTime String
-  endTime   String
+  startMinute Int
+  endMinute   Int
   isActive  Boolean @default(true)
 
   createdAt DateTime @default(now())
@@ -176,8 +176,8 @@ model AvailabilitySlot {
   id                 String     @id @default(uuid())
   availabilityRuleId String
   date               DateTime
-  startTime          String
-  endTime            String
+  startMinute          Int
+  endMinute           Int
   status             SlotStatus @default(AVAILABLE)
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
@@ -185,7 +185,7 @@ model AvailabilitySlot {
   availabilityRule AvailabilityRule @relation(fields: [availabilityRuleId], references: [id], onDelete: Cascade)
   bookings         Booking[]
 
-  @@unique([availabilityRuleId, date, startTime])
+  @@unique([availabilityRuleId, date, startMinute])
 }
 
 enum BookingStatus {

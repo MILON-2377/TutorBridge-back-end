@@ -1,7 +1,8 @@
-import { BookingStatus, SlotStatus } from "@prisma/client";
+import { BookingStatus, Prisma, SlotStatus } from "@prisma/client";
 import prisma from "../../lib/prisma.js";
 import ApiError from "../../utils/ApiError.js";
 import ApiResponse from "../../utils/ApiResponse.js";
+import { UpdateBookingStatusInput } from "./booking.validation.js";
 
 export default class BookingService {
   // Create Booking for a student
@@ -19,6 +20,8 @@ export default class BookingService {
         availabilityRule: true,
       },
     });
+
+    console.log({ slot });
 
     if (!slot) {
       throw ApiError.notFound("Availability slot not found");
@@ -49,7 +52,7 @@ export default class BookingService {
 
     await prisma.availabilitySlot.update({
       where: { id: availabilitySlotId },
-      data: { status: "BOOKED" },
+      data: { status: SlotStatus.BOOKED },
     });
 
     return ApiResponse.success("Booking created successfully", booking);
@@ -58,14 +61,88 @@ export default class BookingService {
   /**
    * Get bookings by student
    */
-  public static getBookingsByStudent = async (studentId: string) => {
-    const bookings = await prisma.booking.findMany({
-      where: { studentId },
-      include: { tutor: true, availabilitySlot: true },
-      orderBy: { createdAt: "desc" },
-    });
+  public static getBookingsByStudent = async (
+    studentId: string,
+    type: "upcoming" | "past" | "all",
+  ) => {
+    try {
+      const now = new Date();
+      const currentMinute = now.getHours() * 60 + now.getMinutes();
 
-    return ApiResponse.success("Bookings fetched successfully", bookings);
+      const where: Prisma.BookingWhereInput = {
+        studentId,
+      };
+
+      if (type === "upcoming") {
+        where.status = {
+          in: ["PENDING", "CONFIRMED"],
+        };
+
+        where.availabilitySlot = {
+          OR: [
+            {
+              date: {
+                gt: now,
+              },
+            },
+            {
+              date: {
+                equals: now,
+              },
+              endMinute: {
+                gt: currentMinute,
+              },
+            },
+          ],
+        };
+      }
+
+      if (type === "past") {
+        where.OR = [
+          {
+            status: {
+              in: ["COMPLETED", "CANCELLED"],
+            },
+          },
+          {
+            availabilitySlot: {
+              OR: [
+                {
+                  date: {
+                    lt: now,
+                  },
+                },
+                {
+                  date: {
+                    equals: now,
+                  },
+                  endMinute: {
+                    lte: currentMinute,
+                  },
+                },
+              ],
+            },
+          },
+        ];
+      }
+
+      const bookings = await prisma.booking.findMany({
+        where,
+        include: {
+          tutor: true,
+          availabilitySlot: true,
+        },
+        orderBy: {
+          availabilitySlot: {
+            date: "asc",
+          },
+        },
+      });
+
+      return ApiResponse.success("Bookings fetched successfully", bookings);
+    } catch (error) {
+      throw ApiError.error("Get student bookings error");
+    }
   };
 
   /**
@@ -82,12 +159,11 @@ export default class BookingService {
   };
 
   /**
-   * Update booking status (CONFIRMED, COMPLETED, CANCELLED)
+   * Update booking status
    */
   public static updateBookingStatus = async (
     bookingId: string,
-    status: BookingStatus,
-    cancelledBy?: string,
+    data: UpdateBookingStatusInput,
   ) => {
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
@@ -98,13 +174,14 @@ export default class BookingService {
     const updatedBooking = await prisma.booking.update({
       where: { id: bookingId },
       data: {
-        status,
-        cancelledBy: status === BookingStatus.CANCELLED ? cancelledBy : null,
+        status: data.status,
+        cancelledBy:
+          data.status === BookingStatus.CANCELLED ? data.cancelledBy : null,
       },
     });
 
-    // Update slot status back to AVAILABLE if cancelled
-    if (status === BookingStatus.CANCELLED) {
+    // Update slot status
+    if (data.status === BookingStatus.CANCELLED) {
       await prisma.availabilitySlot.update({
         where: { id: booking.availabilitySlotId },
         data: { status: SlotStatus.AVAILABLE },

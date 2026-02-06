@@ -3,10 +3,11 @@ import asyncHandler from "../../utils/AsyncHandler.js";
 import {
   AvailabilityRuleSchema,
   CreateTutorSchema,
-  TutorSchema,
+  UpdateAvailabilitySchema,
 } from "./tutor.validation.js";
 import TutorService from "./tutor.service.js";
 import ApiError from "../../utils/ApiError.js";
+import prisma from "../../lib/prisma.js";
 
 export default class TutorController {
   public static createTutor = asyncHandler(
@@ -96,8 +97,9 @@ export default class TutorController {
    */
   public static createAvailability = asyncHandler(
     async (req: Request, res: Response) => {
-      const tutorId = req?.user?.id;
-      if (!tutorId) {
+      const userId = req?.user?.id;
+
+      if (!userId) {
         throw ApiError.forbidden("Only tutors can manage availability");
       }
 
@@ -106,7 +108,7 @@ export default class TutorController {
       const validatedAvailabilityData = AvailabilityRuleSchema.parse(rawData);
 
       const response = await TutorService.createAvailability(
-        tutorId,
+        userId,
         validatedAvailabilityData,
       );
 
@@ -115,22 +117,49 @@ export default class TutorController {
   );
 
   /**
-   * Generate Availability Slots
+   * Update Availability Rule
    */
-  public static generateAvailabilitySlots = asyncHandler(
+  public static updateAvailabilityRule = asyncHandler(
     async (req: Request, res: Response) => {
-      const userId = req?.user?.id;
+      const tutorId = req?.user?.id;
       const ruleId = req.params.id;
-      const daysAhead = Number(req.query.daysAhead) || 14;
 
-      if (!userId || !ruleId) {
-        throw ApiError.badRequest("TutorId or RuleId missing");
+      if (!tutorId) {
+        throw ApiError.forbidden("Only tutors can manage availability");
       }
 
-      const response = await TutorService.generateAvailabilitySlots(
-        userId,
+      if (!ruleId) {
+        throw ApiError.badRequest("Rule ID is required");
+      }
+
+      // Parse and validate input
+      const rawData = req.body;
+
+      const validatedData = UpdateAvailabilitySchema.parse(rawData);
+
+      const response = await TutorService.updateAvailabilityRule(
+        tutorId,
         ruleId as string,
-        daysAhead,
+        validatedData,
+      );
+
+      return res.status(response.statusCode).json(response);
+    },
+  );
+
+  /**
+   * Get Availability By ID
+   */
+  public static getAvailabilityById = asyncHandler(
+    async (req: Request, res: Response) => {
+      const availabilityId = req.params.id;
+
+      if (!availabilityId) {
+        throw ApiError.badRequest("Availability ID is required");
+      }
+
+      const response = await TutorService.getAvailabilityById(
+        availabilityId as string,
       );
 
       return res.status(response.statusCode).json(response);
@@ -142,12 +171,31 @@ export default class TutorController {
    */
   public static getTutorAvailability = asyncHandler(
     async (req: Request, res: Response) => {
-      const tutorId = req?.user?.id;
-      if (!tutorId) {
+      const userId = req?.user?.id;
+      if (!userId) {
         throw ApiError.forbidden("Only tutors can access availability");
       }
 
-      const response = await TutorService.getTutorAvailability(tutorId);
+      const response = await TutorService.getTutorAvailability(userId);
+
+      return res.status(response.statusCode).json(response);
+    },
+  );
+
+  /**
+   * Get Availabilities
+   */
+  public static getAvailabilitySlots = asyncHandler(
+    async (req: Request, res: Response) => {
+      const tutorId = req.params.id;
+
+      if (!tutorId) {
+        throw ApiError.badRequest("Tutor ID is required");
+      }
+
+      const response = await TutorService.getAvailabilitySlots(
+        tutorId as string,
+      );
 
       return res.status(response.statusCode).json(response);
     },

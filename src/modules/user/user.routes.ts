@@ -4,7 +4,12 @@ import authentication from "../../middleware/authentication.js";
 
 const router = Router();
 
-router.get("/me", authentication(), UserController.getSession);
-router.post("/select-role", authentication(), UserController.setRole);
+router.use(authentication());
+
+router.get("/me",  UserController.getSession);
+router.post("/select-role",  UserController.setRole);
+
+
+router.patch("/profile", UserController.updateProfile);
 
 export default router;

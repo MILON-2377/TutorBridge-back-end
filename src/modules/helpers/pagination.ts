@@ -1,23 +1,22 @@
-
-
 export interface PaginationParams {
-    page?: number;
-    limit?: number;
-    search?: string;
-    sortBy?: string;
-    sortOrder?: 'asc' | "desc";
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  subject?: string;
+  include?: any;
 }
 
-export interface PaginatedResult <T> {
-    data: T[];
-    pagination: {
-        total: number;
-        page: number;
-        limit: number;
-        totalPages: number;
-    }
+export interface PaginatedResult<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
-
 
 export const paginate = async <T>(
   model: any,
@@ -42,6 +41,7 @@ export const paginate = async <T>(
     orderBy: filter.orderBy ?? orderBy,
     skip,
     take: limit,
+    include: params.include ?? {}, // <-- forward include here
   });
 
   return {
@@ -55,4 +55,4 @@ export const paginate = async <T>(
   };
 };
 
-export default paginate
+export default paginate;
